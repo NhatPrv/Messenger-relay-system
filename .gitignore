@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+/client/node_modules/
+/server/node_modules/
+
+# Production Build
+/client/dist/
+
+# Configuration and Secrets
+.env
+/server/.env
+appstate.json
+/server/appstate.json
+
+# Logs and Caches
+logs/
+/server/logs/
+/server/logs/*.json
+/server/logs/*.log
+user_cache.json
+/server/logs/user_cache.json
+.eslintcache
+
+# OS Files
+.DS_Store
+Thumbs.db
