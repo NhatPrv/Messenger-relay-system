@@ -37,16 +37,42 @@ router.post('/appstate', authenticateToken, async (req, res) => {
   }
 
   try {
-    // Validate that appState is a valid JSON array
     let parsedState;
     if (typeof appState === 'string') {
-      parsedState = JSON.parse(appState.trim());
+      const trimmed = appState.trim();
+      if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+        parsedState = JSON.parse(trimmed);
+      } else {
+        // Attempt to parse as raw semicolon-separated cookie string
+        logger.info('AppState input appears to be a raw cookie string. Parsing...');
+        parsedState = trimmed.split(';')
+          .map(cookie => {
+            const eqIndex = cookie.indexOf('=');
+            if (eqIndex === -1) return null;
+            const name = cookie.substring(0, eqIndex).trim();
+            const value = cookie.substring(eqIndex + 1).trim();
+            if (!name || !value) return null;
+            return {
+              key: name,
+              value: value,
+              domain: 'facebook.com',
+              path: '/'
+            };
+          })
+          .filter(Boolean);
+
+        if (parsedState.length === 0) {
+          return res.status(400).json({ 
+            error: 'Định dạng cookie không hợp lệ. Vui lòng dán chuỗi cookie hợp lệ chứa các cặp key=value.' 
+          });
+        }
+      }
     } else {
       parsedState = appState;
     }
 
     if (!Array.isArray(parsedState)) {
-      return res.status(400).json({ error: 'AppState must be a valid JSON array of cookies.' });
+      return res.status(400).json({ error: 'AppState phải là một mảng JSON chứa các cookie.' });
     }
 
     // Write file to target path
