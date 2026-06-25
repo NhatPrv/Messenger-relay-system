@@ -10,6 +10,7 @@ const facebookService = require('./services/facebookService');
 // Routers
 const authRoutes = require('./routes/auth');
 const statusRoutes = require('./routes/status');
+const facebookRoutes = require('./routes/facebook');
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +28,7 @@ app.use((req, res, next) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', statusRoutes);
+app.use('/api/facebook', facebookRoutes);
 
 // Serve Web Client static assets in production if built
 const clientBuildPath = path.join(__dirname, '../client/dist');

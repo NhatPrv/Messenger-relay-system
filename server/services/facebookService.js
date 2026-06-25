@@ -198,6 +198,12 @@ class FacebookService {
     }
     this.status = 'disconnected';
   }
+
+  async restart() {
+    logger.info('Restarting Facebook Service listener...');
+    this.stop();
+    await this.start(this.onMessageCallback);
+  }
 }
 
 module.exports = new FacebookService();

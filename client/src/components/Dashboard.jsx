@@ -2,13 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { 
   MessageSquare, Radio, ShieldCheck, 
   Trash2, Volume2, VolumeX, LogOut, 
-  RefreshCw, Clock, Users, Server
+  RefreshCw, Clock, Users, Server, Key
 } from 'lucide-react';
 import StatusIndicator from './StatusIndicator';
 import MessageItem from './MessageItem';
 
 const Dashboard = ({ token, socketConnected, messages, onClearMessages, onLogout, serverStatus, fetchStatus }) => {
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [appStateInput, setAppStateInput] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [modalSuccess, setModalSuccess] = useState('');
+  const [submittingModal, setSubmittingModal] = useState(false);
+
   const feedEndRef = useRef(null);
   const prevMessagesCountRef = useRef(messages.length);
 
@@ -67,6 +73,59 @@ const Dashboard = ({ token, socketConnected, messages, onClearMessages, onLogout
   const formatRAM = (rssBytes) => {
     if (!rssBytes) return '--';
     return `${Math.round(rssBytes / 1024 / 1024)} MB`;
+  };
+
+  // Handle saving the Facebook appState
+  const handleSaveAppState = async (e) => {
+    e.preventDefault();
+    if (!appStateInput.trim()) {
+      setModalError('Vui lòng dán JSON AppState vào đây.');
+      return;
+    }
+
+    setModalError('');
+    setModalSuccess('');
+    setSubmittingModal(true);
+
+    try {
+      let parsed;
+      try {
+        parsed = JSON.parse(appStateInput.trim());
+      } catch (err) {
+        throw new Error('Định dạng JSON không hợp lệ. Vui lòng kiểm tra lại (cần là định dạng mảng []).');
+      }
+
+      if (!Array.isArray(parsed)) {
+        throw new Error('AppState phải là một mảng JSON chứa các cookie.');
+      }
+
+      const response = await fetch('/api/facebook/appstate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ appState: parsed })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setModalSuccess('Đã lưu AppState thành công! Đang kết nối lại Facebook...');
+        setAppStateInput('');
+        setTimeout(() => {
+          setIsModalOpen(false);
+          setModalSuccess('');
+          fetchStatus(); // refresh stats immediately
+        }, 2000);
+      } else {
+        setModalError(data.error || 'Có lỗi xảy ra khi lưu AppState.');
+      }
+    } catch (err) {
+      setModalError(err.message || 'Không thể kết nối đến server.');
+    } finally {
+      setSubmittingModal(false);
+    }
   };
 
   return (
@@ -143,6 +202,15 @@ const Dashboard = ({ token, socketConnected, messages, onClearMessages, onLogout
           </div>
 
           <div className="inbox-actions">
+            {/* Facebook Config AppState Modal Toggle */}
+            <button 
+              className="btn-circle" 
+              onClick={() => setIsModalOpen(true)}
+              title="Cấu hình Token Facebook (AppState)"
+            >
+              <Key size={18} />
+            </button>
+
             {/* Audio Toggle */}
             <button 
               className="btn-circle" 
@@ -196,6 +264,84 @@ const Dashboard = ({ token, socketConnected, messages, onClearMessages, onLogout
           <div ref={feedEndRef} />
         </div>
       </main>
+
+      {/* FB CONFIG MODAL OVERLAY */}
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="glass-card modal-card">
+            <div className="modal-header">
+              <div className="modal-icon-wrapper">
+                <Key size={20} />
+              </div>
+              <div>
+                <h3 className="modal-title">Cấu hình Token Facebook</h3>
+                <p className="modal-subtitle">Dán JSON AppState (Cookie) tài khoản Facebook nhận tin nhắn</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSaveAppState}>
+              <div className="modal-body">
+                <div className="form-group" style={{ marginBottom: '0.75rem' }}>
+                  <label className="form-label">AppState JSON Array</label>
+                  <textarea
+                    className="form-input textarea-appstate"
+                    placeholder='[{"key": "c_user", "value": "..."}, {"key": "xs", "value": "..."}]'
+                    value={appStateInput}
+                    onChange={(e) => setAppStateInput(e.target.value)}
+                    disabled={submittingModal}
+                    rows={8}
+                    style={{ 
+                      fontFamily: 'monospace', 
+                      fontSize: '0.85rem',
+                      resize: 'vertical',
+                      paddingLeft: '1rem' 
+                    }}
+                  />
+                </div>
+                <p className="modal-help-text">
+                  Dùng extension trên trình duyệt (như <i>Get Token Cookie</i> hoặc <i>c3c-fbstate</i>) để lấy cookie dưới dạng JSON, dán vào ô trên và lưu lại.
+                </p>
+
+                {modalError && (
+                  <div className="error-banner" style={{ marginTop: '0.5rem' }}>
+                    <span style={{ fontSize: '0.85rem' }}>⚠️ {modalError}</span>
+                  </div>
+                )}
+
+                {modalSuccess && (
+                  <div className="success-banner" style={{ marginTop: '0.5rem' }}>
+                    <span style={{ fontSize: '0.85rem' }}>✅ {modalSuccess}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-logout" 
+                  style={{ width: 'auto', padding: '0.5rem 1.25rem' }}
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setModalError('');
+                    setModalSuccess('');
+                  }}
+                  disabled={submittingModal}
+                >
+                  Đóng
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  style={{ width: 'auto', padding: '0.5rem 1.25rem' }}
+                  disabled={submittingModal}
+                >
+                  {submittingModal ? 'Đang lưu...' : 'Lưu & Kết nối'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
