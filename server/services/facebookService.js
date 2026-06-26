@@ -62,20 +62,20 @@ class FacebookService {
     logger.info(`Attempting to login to Facebook using appstate at: ${resolvedPath}`);
 
     try {
-      // Safely import fca-unofficial (catch native binding or install issues)
+      // Safely import @dongdev/fca-unofficial (catch native binding or install issues)
       let login;
       try {
-        login = require('fca-unofficial');
+        login = require('@dongdev/fca-unofficial');
       } catch (err) {
-        logger.error('Failed to require "fca-unofficial" module.', err);
+        logger.error('Failed to require "@dongdev/fca-unofficial" module.', err);
         this.status = 'error';
-        this.errorDetails = 'Không thể nạp thư viện fca-unofficial.';
+        this.errorDetails = 'Không thể nạp thư viện @dongdev/fca-unofficial.';
         return;
       }
 
       const appState = JSON.parse(fs.readFileSync(resolvedPath, 'utf8'));
 
-      login({ appState }, (err, api) => {
+      login({ appState }, { userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' }, (err, api) => {
         if (err) {
           logger.error('Facebook login failed:', err);
           this.status = 'error';
