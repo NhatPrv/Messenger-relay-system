@@ -1,11 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
-const mockService = require('./mockService');
 
 class FacebookService {
   constructor() {
-    this.status = 'disconnected'; // 'disconnected' | 'connecting' | 'connected' | 'mock' | 'error'
+    this.status = 'disconnected'; // 'disconnected' | 'connecting' | 'connected' | 'error'
     this.errorDetails = null;
     this.api = null;
     this.userCache = {}; // senderID -> { name, profileUrl }
@@ -49,22 +48,13 @@ class FacebookService {
 
   async start(onMessageCallback) {
     this.onMessageCallback = onMessageCallback;
-    const mockMode = process.env.FB_MOCK_MODE === 'true';
     const appStatePath = process.env.FB_APPSTATE_PATH || './appstate.json';
     const resolvedPath = path.resolve(appStatePath);
 
-    if (mockMode) {
-      logger.info('FB_MOCK_MODE is enabled in environment variables. Starting mock service.');
-      this.status = 'mock';
-      mockService.start(onMessageCallback);
-      return;
-    }
-
     if (!fs.existsSync(resolvedPath)) {
-      logger.warn(`appstate.json not found at ${resolvedPath}. Falling back to Mock Mode.`);
-      this.status = 'mock';
-      this.errorDetails = 'appstate.json not found. Running in Mock Mode.';
-      mockService.start(onMessageCallback);
+      logger.warn(`appstate.json not found at ${resolvedPath}. Waiting for cookies to be configured.`);
+      this.status = 'error';
+      this.errorDetails = 'Không tìm thấy file appstate.json. Vui lòng cấu hình Cookie bằng nút chìa khóa 🔑.';
       return;
     }
 
@@ -77,10 +67,9 @@ class FacebookService {
       try {
         login = require('fca-unofficial');
       } catch (err) {
-        logger.error('Failed to require "fca-unofficial" module. Falling back to Mock Mode.', err);
-        this.status = 'mock';
-        this.errorDetails = 'fca-unofficial package loading failed. Running in Mock Mode.';
-        mockService.start(onMessageCallback);
+        logger.error('Failed to require "fca-unofficial" module.', err);
+        this.status = 'error';
+        this.errorDetails = 'Không thể nạp thư viện fca-unofficial.';
         return;
       }
 
@@ -90,9 +79,7 @@ class FacebookService {
         if (err) {
           logger.error('Facebook login failed:', err);
           this.status = 'error';
-          this.errorDetails = err.message || 'Facebook login error';
-          logger.warn('Falling back to Mock Mode due to login failure.');
-          mockService.start(onMessageCallback);
+          this.errorDetails = err.message || 'Lỗi cookie đăng nhập Facebook (hết hạn hoặc sai định dạng)';
           return;
         }
 
@@ -112,7 +99,7 @@ class FacebookService {
           if (listenErr) {
             logger.error('Error in Facebook MQTT listener:', listenErr);
             this.status = 'error';
-            this.errorDetails = listenErr.message || 'MQTT listener error';
+            this.errorDetails = listenErr.message || 'Lỗi mất kết nối MQTT';
             return;
           }
 
@@ -125,10 +112,7 @@ class FacebookService {
     } catch (err) {
       logger.error('Unexpected error during Facebook service startup:', err);
       this.status = 'error';
-      this.errorDetails = err.message || 'Unexpected service error';
-      logger.warn('Falling back to Mock Mode.');
-      this.status = 'mock';
-      mockService.start(onMessageCallback);
+      this.errorDetails = err.message || 'Lỗi hệ thống không xác định.';
     }
   }
 
@@ -184,9 +168,6 @@ class FacebookService {
   }
 
   stop() {
-    // If running mock mode, stop mock
-    mockService.stop();
-    
     if (this.api) {
       logger.info('Stopping Facebook Service listener...');
       try {

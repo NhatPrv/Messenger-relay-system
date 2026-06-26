@@ -7,8 +7,6 @@ const StatusIndicator = ({ socketConnected, serverStatus }) => {
     switch (serverStatus.facebook?.status) {
       case 'connected':
         return 'connected';
-      case 'mock':
-        return 'mock';
       case 'connecting':
         return 'connecting';
       case 'error':
@@ -22,8 +20,6 @@ const StatusIndicator = ({ socketConnected, serverStatus }) => {
     switch (serverStatus.facebook?.status) {
       case 'connected':
         return 'Connected';
-      case 'mock':
-        return 'Mock Mode Active';
       case 'connecting':
         return 'Connecting...';
       case 'error':

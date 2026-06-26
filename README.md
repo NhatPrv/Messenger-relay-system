@@ -3,7 +3,7 @@
 Hệ thống nhận tin nhắn Facebook Messenger theo thời gian thực (real-time) và đẩy về giao diện quản trị Web Dashboard qua WebSocket.
 
 Dự án được xây dựng theo kiến trúc **Single User System** (chỉ dành cho 1 người dùng quản trị) sử dụng:
-*   **Server:** Node.js + Express + Socket.io + `fb-chat-api` (hoặc mock fallback).
+*   **Server:** Node.js + Express + Socket.io + `fca-unofficial`.
 *   **Client:** React.js (Vite) + Vanilla CSS (Giao diện tối giản Glassmorphic Dark-theme).
 
 ---
@@ -21,10 +21,10 @@ MessengerRelaySystem/
 │   ├── server.js               # Entry point khởi chạy server
 │   ├── routes/                 # API Endpoints
 │   │   ├── auth.js             # Route xử lý login Dashboard
+│   │   ├── facebook.js         # Route cấu hình Cookie/AppState Facebook
 │   │   └── status.js           # Route kiểm tra trạng thái hệ thống
 │   ├── services/               # Logic nghiệp vụ chính
-│   │   ├── facebookService.js  # Lắng nghe tin nhắn Facebook Messenger
-│   │   └── mockService.js      # Tạo dữ liệu giả lập tin nhắn để test
+│   │   └── facebookService.js  # Lắng nghe tin nhắn Facebook Messenger
 │   ├── socket/                 # Cấu hình WebSockets
 │   │   └── socketHandler.js    # Quản lý kết nối JWT và Broadcast tin nhắn
 │   └── utils/
@@ -49,8 +49,6 @@ MessengerRelaySystem/
 
 ## ⚡ Bắt đầu Nhanh (Chạy Local)
 
-Hệ thống tích hợp chế độ **Mock Mode** (`FB_MOCK_MODE=true` trong file cấu hình `.env`). Chế độ này tự động sinh các tin nhắn giả lập mỗi 15 giây, giúp bạn kiểm tra luồng WebSocket và giao diện mà không cần cấu hình tài khoản Facebook thật.
-
 ### Bước 1: Thiết lập cấu hình (.env)
 
 Tại thư mục `/server`, sao chép file `.env.example` thành `.env`:
@@ -62,7 +60,6 @@ cp .env.example .env
 Mở file `.env` và điều chỉnh:
 *   `ADMIN_PASSWORD`: Mật khẩu đăng nhập vào Web Dashboard.
 *   `JWT_SECRET`: Khóa bí mật dùng để mã hóa session token.
-*   `FB_MOCK_MODE=true` (Đặt là `true` để test giao diện trước, đặt `false` để kết nối Facebook thật).
 
 ### Bước 2: Chạy Server (Backend)
 
@@ -84,24 +81,28 @@ npm run dev
 ```
 *Client sẽ chạy tại địa chỉ `http://localhost:3000`.*
 
-Mở trình duyệt, truy cập `http://localhost:3000` và nhập mật khẩu bạn đã thiết lập trong file `.env` để xem tin nhắn đẩy về trong thời gian thực.
+Mở trình duyệt, truy cập `http://localhost:3000` và nhập mật khẩu bạn đã thiết lập trong file `.env` để xem tin nhắn.
 
 ---
 
-## 🍪 Hướng dẫn lấy File Facebook Cookie (appstate.json)
+## 🍪 Hướng dẫn đăng nhập tài khoản Facebook truyền tin
 
-Khi bạn muốn chạy hệ thống với tài khoản Facebook thực tế (không dùng Mock Mode):
+Khi chạy dự án, bạn cần liên kết tài khoản Facebook dùng để lắng nghe tin nhắn:
 
-1.  **Chuyển đổi cấu hình:** Đặt `FB_MOCK_MODE=false` trong file `server/.env`.
-2.  **Cài đặt tiện ích Cookie trên trình duyệt:** Cài đặt một Chrome Extension dùng để xuất Cookie Facebook dưới dạng JSON (Ví dụ: *c3c-fbstate* hoặc *Get Token Cookie*).
-3.  **Tải xuống appstate:** 
-    *   Đăng nhập tài khoản Facebook của bạn trên trình duyệt.
-    *   Mở tiện ích lên, copy toàn bộ chuỗi JSON Cookie nhận được.
-4.  **Lưu file:** Tạo file `appstate.json` nằm tại thư mục `server/appstate.json` và paste nội dung JSON vừa copy vào.
-5.  **Khởi động lại Server:** Server sẽ tự động phát hiện file `appstate.json`, thực hiện đăng nhập và lắng nghe tin nhắn trên tài khoản của bạn.
+1. **Lấy chuỗi Cookie Facebook:**
+   * Đăng nhập tài khoản Facebook của bạn trên trình duyệt.
+   * Cài đặt một Chrome Extension dùng để xuất Cookie dưới dạng JSON hoặc chuỗi Text (Ví dụ: *c3c-fbstate* hoặc *Get Token Cookie*).
+   * Bấm vào tiện ích và sao chép (copy) chuỗi Cookie hoặc JSON nhận được.
+2. **Cấu hình trên Dashboard:**
+   * Truy cập dashboard tại địa chỉ `http://localhost:5000` (hoặc cổng `3000` ở chế độ dev).
+   * Đăng nhập bằng mật khẩu quản trị (`ADMIN_PASSWORD`).
+   * Nhấp vào biểu tượng chiếc **chìa khóa 🔑** ở góc trên cùng bên phải.
+   * Dán chuỗi Cookie/JSON bạn vừa copy vào ô nhập và nhấn **Lưu & Kết nối**.
+3. **Hoàn tất:**
+   * Máy chủ sẽ lưu cookie này dưới dạng `appstate.json`, tự động kết nối và bắt đầu chuyển tiếp tin nhắn thời gian thực về Dashboard.
 
 > [!WARNING]
-> **Khuyến cáo Bảo mật:** File `appstate.json` chứa thông tin đăng nhập của bạn dưới dạng cookie. Tuyệt đối không chia sẻ file này lên GitHub hoặc cho người khác để tránh bị hack tài khoản.
+> **Khuyến cáo Bảo mật:** File `appstate.json` trên server chứa thông tin đăng nhập của bạn dưới dạng cookie. Thư mục này đã được cấu hình trong `.gitignore` để tránh bị đẩy lên GitHub công khai. Tuyệt đối không chia sẻ file này cho người khác.
 
 ---
 

@@ -55,7 +55,7 @@ router.post('/appstate', authenticateToken, async (req, res) => {
             return {
               key: name,
               value: value,
-              domain: 'facebook.com',
+              domain: '.facebook.com',
               path: '/'
             };
           })
@@ -81,9 +81,6 @@ router.post('/appstate', authenticateToken, async (req, res) => {
 
     fs.writeFileSync(resolvedPath, JSON.stringify(parsedState, null, 2), 'utf8');
     logger.info(`Successfully wrote new appstate.json to ${resolvedPath}`);
-
-    // Update in-memory Mock Mode environment setting to false
-    process.env.FB_MOCK_MODE = 'false';
 
     // Restart the Facebook Service in the background
     // Respond immediately to the client that it has started reconnecting

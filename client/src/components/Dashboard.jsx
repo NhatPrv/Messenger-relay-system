@@ -249,7 +249,7 @@ const Dashboard = ({ token, socketConnected, messages, onClearMessages, onLogout
               </div>
               <h3 className="empty-title">Inbox is Empty</h3>
               <p className="empty-subtitle">
-                Waiting for incoming Messenger messages. If you are testing, make sure FB_MOCK_MODE=true is enabled on the server to push simulated data.
+                Đang chờ tin nhắn Messenger gửi đến. Bạn hãy bấm vào nút cấu hình chiếc chìa khóa 🔑 ở góc trên để liên kết tài khoản Facebook.
               </p>
             </div>
           ) : (

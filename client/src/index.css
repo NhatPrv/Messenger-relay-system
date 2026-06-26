@@ -358,13 +358,6 @@ h1, h2, h3, h4, h5, h6 {
   background-color: var(--color-success);
 }
 
-.status-dot.mock {
-  background-color: var(--color-warning);
-}
-.status-dot.mock::after {
-  background-color: var(--color-warning);
-}
-
 .status-dot.connecting {
   background-color: var(--color-info);
 }
