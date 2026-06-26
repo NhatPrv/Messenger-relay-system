@@ -91,7 +91,7 @@ class FacebookService {
         // Configure api listening
         api.setOptions({
           listenEvents: true,
-          selfListen: false
+          selfListen: true
         });
 
         // Start listening to MQTT messages
@@ -103,7 +103,9 @@ class FacebookService {
             return;
           }
 
-          if (event.type === 'message') {
+          logger.info(`Nhận được sự kiện từ Facebook (Event type): ${event.type}`);
+
+          if (event.type === 'message' || event.type === 'message_reply') {
             this.handleIncomingMessage(event);
           }
         });
