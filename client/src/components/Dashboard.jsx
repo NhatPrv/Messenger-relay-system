@@ -88,30 +88,19 @@ const Dashboard = ({ token, socketConnected, messages, onClearMessages, onLogout
     setSubmittingModal(true);
 
     try {
-      let parsed;
-      try {
-        parsed = JSON.parse(appStateInput.trim());
-      } catch (err) {
-        throw new Error('Định dạng JSON không hợp lệ. Vui lòng kiểm tra lại (cần là định dạng mảng []).');
-      }
-
-      if (!Array.isArray(parsed)) {
-        throw new Error('AppState phải là một mảng JSON chứa các cookie.');
-      }
-
       const response = await fetch('/api/facebook/appstate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ appState: parsed })
+        body: JSON.stringify({ appState: appStateInput.trim() })
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        setModalSuccess('Đã lưu AppState thành công! Đang kết nối lại Facebook...');
+        setModalSuccess('Đã cấu hình thành công! Đang kết nối lại Facebook...');
         setAppStateInput('');
         setTimeout(() => {
           setIsModalOpen(false);
@@ -119,7 +108,7 @@ const Dashboard = ({ token, socketConnected, messages, onClearMessages, onLogout
           fetchStatus(); // refresh stats immediately
         }, 2000);
       } else {
-        setModalError(data.error || 'Có lỗi xảy ra khi lưu AppState.');
+        setModalError(data.error || 'Có lỗi xảy ra khi lưu cấu hình.');
       }
     } catch (err) {
       setModalError(err.message || 'Không thể kết nối đến server.');
