@@ -101,4 +101,46 @@ router.post('/appstate', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/facebook/threads - Get list of active conversations
+router.get('/threads', authenticateToken, async (req, res) => {
+  try {
+    const threads = await facebookService.getThreads(50);
+    return res.json(threads);
+  } catch (err) {
+    logger.error('Failed to get active threads:', err);
+    return res.status(500).json({ error: 'Failed to retrieve threads list.' });
+  }
+});
+
+// GET /api/facebook/thread/:threadID/history - Get message history of a specific conversation
+router.get('/thread/:threadID/history', authenticateToken, async (req, res) => {
+  const { threadID } = req.params;
+  const limit = req.query.limit ? parseInt(req.query.limit) : 50;
+
+  try {
+    const history = await facebookService.getThreadHistory(threadID, limit);
+    return res.json(history);
+  } catch (err) {
+    logger.error(`Failed to get thread history for ${threadID}:`, err);
+    return res.status(500).json({ error: 'Failed to retrieve thread history.' });
+  }
+});
+
+// POST /api/facebook/send - Send a reply message to a specific conversation
+router.post('/send', authenticateToken, async (req, res) => {
+  const { threadID, message } = req.body;
+
+  if (!threadID || !message) {
+    return res.status(400).json({ error: 'ThreadID and message are required.' });
+  }
+
+  try {
+    const result = await facebookService.sendMessage(threadID, message);
+    return res.json({ success: true, messageInfo: result });
+  } catch (err) {
+    logger.error(`Failed to send message to thread ${threadID}:`, err);
+    return res.status(500).json({ error: err.message || 'Failed to send message.' });
+  }
+});
+
 module.exports = router;

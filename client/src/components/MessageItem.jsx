@@ -1,8 +1,8 @@
 import React from 'react';
-import { ExternalLink, MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 const MessageItem = ({ data, isNew }) => {
-  const { senderName, profileUrl, message, timestamp } = data;
+  const { senderName, senderID, message, timestamp, isSelf } = data;
 
   // Generate initials for avatar
   const getInitials = (name) => {
@@ -14,21 +14,32 @@ const MessageItem = ({ data, isNew }) => {
     return name.slice(0, 2).toUpperCase();
   };
 
-  // Format timestamp (hh:mm:ss dd/mm/yyyy)
+  // Format timestamp (hh:mm)
   const formatTime = (ts) => {
     if (!ts) return '';
     const date = new Date(ts);
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    
-    return `${hours}:${minutes}:${seconds} - ${day}/${month}`;
+    return `${hours}:${minutes}`;
   };
 
+  if (isSelf) {
+    return (
+      <div className={`chat-message-row self ${isNew ? 'new-pulse' : ''}`}>
+        <div className="chat-message-bubble-wrapper">
+          <div className="chat-message-bubble" title={new Date(timestamp).toLocaleString()}>
+            {message}
+          </div>
+          <span className="chat-message-time">{formatTime(timestamp)}</span>
+        </div>
+      </div>
+    );
+  }
+
+  const profileUrl = senderID ? `https://facebook.com/${senderID}` : null;
+
   return (
-    <div className={`message-card ${isNew ? 'new-pulse' : ''}`}>
+    <div className={`chat-message-row partner ${isNew ? 'new-pulse' : ''}`}>
       {/* Avatar with Facebook badge */}
       <div className="avatar-wrapper">
         <div className="avatar">
@@ -40,22 +51,27 @@ const MessageItem = ({ data, isNew }) => {
       </div>
 
       {/* Message Text Content */}
-      <div className="message-content-wrapper">
-        <div className="message-info-header">
-          <a 
-            href={profileUrl} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="sender-name-link"
-            title="Click to view Facebook profile"
-          >
-            {senderName}
-            <ExternalLink size={12} strokeWidth={2.5} />
-          </a>
-          <span className="message-time">{formatTime(timestamp)}</span>
+      <div className="chat-message-content-wrapper">
+        <div className="chat-message-info">
+          {profileUrl ? (
+            <a 
+              href={profileUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="chat-sender-name"
+              title="Click to view Facebook profile"
+            >
+              {senderName}
+            </a>
+          ) : (
+            <span className="chat-sender-name">{senderName}</span>
+          )}
         </div>
-        <div className="message-bubble">
-          {message}
+        <div className="chat-message-bubble-wrapper">
+          <div className="chat-message-bubble" title={new Date(timestamp).toLocaleString()}>
+            {message}
+          </div>
+          <span className="chat-message-time">{formatTime(timestamp)}</span>
         </div>
       </div>
     </div>

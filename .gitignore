@@ -24,3 +24,9 @@ user_cache.json
 # OS Files
 .DS_Store
 Thumbs.db
+
+# FCA temporary files and session databases
+Fca_Database/
+server/Fca_Database/
+fca-config.json
+server/fca-config.json

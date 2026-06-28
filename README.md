@@ -21,12 +21,12 @@ MessengerRelaySystem/
 │   ├── server.js               # Entry point khởi chạy server
 │   ├── routes/                 # API Endpoints
 │   │   ├── auth.js             # Route xử lý login Dashboard
-│   │   ├── facebook.js         # Route cấu hình Cookie/AppState Facebook
+│   │   ├── facebook.js         # API lấy danh sách chat, lịch sử tin nhắn & gửi phản hồi
 │   │   └── status.js           # Route kiểm tra trạng thái hệ thống
 │   ├── services/               # Logic nghiệp vụ chính
-│   │   └── facebookService.js  # Lắng nghe tin nhắn Facebook Messenger
+│   │   └── facebookService.js  # Kết nối Facebook, lấy danh sách cuộc hội thoại, lịch sử & gửi phản hồi
 │   ├── socket/                 # Cấu hình WebSockets
-│   │   └── socketHandler.js    # Quản lý kết nối JWT và Broadcast tin nhắn
+│   │   └── socketHandler.js    # Quản lý kết nối JWT và Broadcast tin nhắn thời gian thực
 │   └── utils/
 │       └── logger.js           # Ghi log lỗi và console (Winston)
 └── client/                     # Mã nguồn Frontend Web Client
@@ -36,12 +36,12 @@ MessengerRelaySystem/
     ├── vite.config.js          # Cấu hình dev proxy
     └── src/
         ├── main.jsx            # Entry point React
-        ├── App.jsx             # Quản lý auth state & Socket connection
-        ├── index.css           # Hệ thống CSS Premium Glassmorphism
+        ├── App.jsx             # Quản lý auth state, danh sách cuộc trò chuyện & WebSocket listener
+        ├── index.css           # Hệ thống CSS Premium Glassmorphism & Khung bong bóng chat
         └── components/         # Các React component giao diện
             ├── Login.jsx       # Form đăng nhập quản trị
-            ├── Dashboard.jsx   # Dashboard chính hiển thị tin nhắn
-            ├── MessageItem.jsx # Khung hiển thị từng tin nhắn
+            ├── Dashboard.jsx   # Giao diện chính dạng hai cột (Bảng danh sách chat & Khung hội thoại)
+            ├── MessageItem.jsx # Khung hiển thị bong bóng tin nhắn (gửi/nhận)
             └── StatusIndicator.jsx # Đèn báo trạng thái kết nối
 ```
 
@@ -136,9 +136,9 @@ cd Messenger-relay-system
 
 # Tạo file .env cho Server
 cp server/.env.example server/.env
-nano server/.env # Sửa ADMIN_PASSWORD, JWT_SECRET và đặt FB_MOCK_MODE=false
+nano server/.env # Sửa ADMIN_PASSWORD và JWT_SECRET
 ```
-*Tạo và lưu file `appstate.json` của bạn vào thư mục `server/appstate.json` nếu bạn chạy với tài khoản thật.*
+*Tạo và lưu file `appstate.json` của bạn vào thư mục `server/appstate.json` nếu bạn chạy với tài khoản thật (hoặc dán qua nút chìa khóa trên giao diện).*
 
 #### Bước 3: Khởi chạy dự án bằng Docker Compose
 Tại thư mục gốc của dự án, chạy lệnh:
