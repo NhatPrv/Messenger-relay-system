@@ -181,28 +181,76 @@ class FacebookService {
 
     return new Promise((resolve) => {
       logger.info(`Fetching top ${limit} active chat threads...`);
-      this.api.getThreadList(limit, null, ['INBOX'], (err, list) => {
+      this.api.getThreadList(limit, null, ['INBOX'], async (err, list) => {
         if (err || !list) {
           logger.error('Failed to fetch thread list:', err);
           return resolve([]);
         }
 
         const currentUserID = this.api.getCurrentUserID();
+        
+        // Identify which threads are 1-to-1 chats and have no custom name
+        // and collect their threadID to fetch names in batch.
+        const unknownUserIDs = [];
+        list.forEach(thread => {
+          if (!thread.isGroup && !thread.name) {
+            if (!this.userCache[thread.threadID]) {
+              unknownUserIDs.push(thread.threadID);
+            }
+          }
+        });
+
+        // Fetch user info for unknown participants in batch
+        if (unknownUserIDs.length > 0) {
+          try {
+            logger.info(`Fetching names for unknown 1-to-1 thread participants: ${unknownUserIDs.join(', ')}`);
+            await new Promise((resolveInfo) => {
+              this.api.getUserInfo(unknownUserIDs, (errInfo, info) => {
+                if (!errInfo && info) {
+                  for (const id of unknownUserIDs) {
+                    if (info[id]) {
+                      this.userCache[id] = {
+                        name: info[id].name || `Facebook User (${id})`,
+                        profileUrl: `https://facebook.com/${id}`
+                      };
+                    }
+                  }
+                  this.saveUserCache();
+                } else {
+                  logger.warn('Failed to fetch participant info:', errInfo);
+                }
+                resolveInfo();
+              });
+            });
+          } catch (errInfoEx) {
+            logger.error('Error fetching unknown thread participants:', errInfoEx);
+          }
+        }
+
         const formattedThreads = list.map(thread => {
           const isSelfSnippet = thread.snippetSender === currentUserID;
-          let name = thread.name || 'Facebook User';
+          let name = thread.name;
 
-          // Update cache with thread user name if it's a 1-to-1 chat
-          if (!thread.isGroup && thread.threadID && thread.name && !isSelfSnippet) {
+          if (!name) {
+            if (thread.isGroup) {
+              name = 'Nhóm không tên';
+            } else {
+              // 1-to-1 chat name resolution from cache
+              name = this.userCache[thread.threadID]?.name || `Facebook User (${thread.threadID})`;
+            }
+          }
+
+          // Cache participant name for 1-to-1 if not already
+          if (!thread.isGroup && thread.threadID && name && name !== `Facebook User (${thread.threadID})`) {
             this.userCache[thread.threadID] = {
-              name: thread.name,
+              name,
               profileUrl: `https://facebook.com/${thread.threadID}`
             };
           }
 
           return {
             threadID: thread.threadID,
-            name: thread.name || 'Facebook User',
+            name: name,
             unreadCount: thread.unreadCount || 0,
             isGroup: thread.isGroup || false,
             snippet: thread.snippet || '',
